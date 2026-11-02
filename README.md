@@ -176,7 +176,12 @@ Other failures:
 ## Logging
 
 Logs go to stderr as plain lines, without colours or timestamps (journald stamps them).
-`RUST_LOG` filters them, defaulting to `info`:
+`RUST_LOG` filters them, defaulting to `info`.
+
+The `aws_config` target is held at `warn` whatever `RUST_LOG` says, unless `RUST_LOG` names it
+explicitly (`RUST_LOG=info,aws_config=info`). At `info` the SDK logs the credentials it
+resolved, and their debug form includes the access key id. The secret is redacted and the id is
+not a secret, but there is no reason to keep it in the journal.
 
 ```text
 INFO ecr_listener::daemon: listening queue=https://sqs.us-east-1.amazonaws.com/123456789012/kenesparta-host-deploy-events queue_arn=arn:aws:sqs:us-east-1:123456789012:kenesparta-host-deploy-events projects=4

@@ -1,6 +1,6 @@
 [package]
 name = "ecr-listener"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 rust-version = "1.99"
 description = "Long-polls an SQS queue for ECR push events and starts the matching systemd deploy unit"
