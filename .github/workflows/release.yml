@@ -1,0 +1,52 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  TARGET: x86_64-unknown-linux-gnu
+  # Part of the contract with personal-infra's Ansible, which downloads this exact name.
+  ASSET: ecr-listener-x86_64-unknown-linux-gnu
+
+jobs:
+  release:
+    # Built on 24.04 so the binary needs no newer glibc than the host's (Ubuntu 24.04).
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # No build cache here on purpose: a release is built from a clean slate.
+      - name: Install the pinned toolchain
+        run: rustup toolchain install
+      - name: Check the tag matches the Cargo.toml version
+        run: |
+          version=$(cargo metadata --format-version 1 --no-deps --locked \
+            | jq -r '.packages[] | select(.name == "ecr-listener") | .version')
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match the Cargo.toml version (expected v$version)"
+            exit 1
+          fi
+      - run: cargo test --locked
+      - run: cargo build --release --locked --target "$TARGET"
+      - name: Package the binary and its checksum
+        run: |
+          mkdir dist
+          cp "target/$TARGET/release/ecr-listener" "dist/$ASSET"
+          cd dist
+          "./$ASSET" --version
+          sha256sum "$ASSET" > "$ASSET.sha256"
+          cat "$ASSET.sha256"
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "dist/$ASSET" "dist/$ASSET.sha256" \
+            --verify-tag --title "$GITHUB_REF_NAME" --generate-notes

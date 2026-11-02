@@ -1,0 +1,15 @@
+# ecr-listener configuration: /etc/ecr-listener/config.toml by default, or --config <path>.
+
+# The queue the EventBridge rule for ECR pushes sends to.
+queue_url = "https://sqs.us-east-1.amazonaws.com/123456789012/kenesparta-host-deploy-events"
+# The queue's region. Always read from here, never from the environment.
+region = "us-east-1"
+# Optional, 30..=3600, default 360: the longest one `systemctl start` may take.
+deploy_timeout_secs = 360
+
+# One table per project. A push of `repository:tag` starts `unit`.
+[[project]]
+name = "blog"
+repository = "kenespartadev"
+tag = "latest"
+unit = "personal-infra-deploy@blog.service"
